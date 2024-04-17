@@ -1,4 +1,3 @@
-using OrderBookTestTask.Dtos.TradingPairs.BtcEur;
 using OrderBookTestTask.Interfaces;
 using OrderBookTestTask.Components;
 using OrderBookTestTask.Services;
@@ -12,7 +11,9 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddSignalR();
 builder.Services.AddTransient<IOrderBookService, OrderBookService>();
-builder.Services.AddHostedService<OrderBookWebSocketService<BtcEur>>();
+builder.Services.AddHostedService<BtcEurOrderBookWebSocketBackgroundService>();
+builder.Services.AddHostedService<BtcUsdOrderBookWebSocketBackgroundService>();
+
 
 var app = builder.Build();
 
