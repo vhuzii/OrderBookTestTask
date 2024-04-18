@@ -4,9 +4,9 @@ namespace OrderBookTestTask.Hubs
 {
     public class OrderBookHub : Hub
     {
-        public async Task SendOrderBook(string orderBook)
+        public async Task JoinRoom(string groupName)
         {
-            await Clients.All.SendAsync("ReceiveOrderBook", orderBook);
+            await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         }
     }
 }

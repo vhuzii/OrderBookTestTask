@@ -59,7 +59,11 @@ public abstract class OrderBookWebSocketBackgroundService : BackgroundService
         while (true)
         {
             var result = await clientWebSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-
+            if (result.Count == 0)
+            {
+                continue;
+            }
+            
             if (result.MessageType == WebSocketMessageType.Text)
             {
                 var orderBookString = Encoding.UTF8.GetString(buffer, index: 0, result.Count);
@@ -70,7 +74,7 @@ public abstract class OrderBookWebSocketBackgroundService : BackgroundService
                     continue;
                 }
 
-                await _hubContext.Clients.All.SendAsync("ReceiveOrderBook", orderBookString);
+                await _hubContext.Clients.Group(TradingPair).SendAsync(Constants.SignalR.Methods.ReceiveOrderBook, orderBook);
                 await _orderBookService.CreateOrderBookAsync(orderBook);
             }
             else if (result.MessageType == WebSocketMessageType.Close)

@@ -3,6 +3,8 @@ using OrderBookTestTask.Components;
 using OrderBookTestTask.Services;
 using OrderBookTestTask.Services.Background;
 using OrderBookTestTask.Models;
+using OrderBookTestTask.Hubs;
+using OrderBookTestTask.Constants.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,5 +37,7 @@ app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+app.MapHub<OrderBookHub>(HubUrls.OrderBookHub);
 
 app.Run();
