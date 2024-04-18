@@ -1,31 +1,43 @@
 using Microsoft.AspNetCore.SignalR;
+using OrderBookTestTask.Dtos;
 using OrderBookTestTask.Hubs;
 using OrderBookTestTask.Interfaces;
+using OrderBookTestTask.Models;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json;
 
 namespace OrderBookTestTask.Abstractions;
 
 public abstract class OrderBookWebSocketBackgroundService : BackgroundService 
 {
-    private const string WebsocketUrl = "wss://ws.bitstamp.net";
+    private const int WebSocketResultBufferSize = 10240;
+    private const string WebSockerResultEvent = "data";
+
+    private static readonly JsonSerializerOptions deserealizeOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
     
     public abstract string TradingPair { get; }
 
     private readonly IHubContext<OrderBookHub> _hubContext;
     private readonly IOrderBookService _orderBookService;
     private readonly ClientWebSocket _clientWebSocket = new();
+    private readonly string _websocketUrl;
+
 
     public OrderBookWebSocketBackgroundService(IHubContext<OrderBookHub> hubContext, 
-        IOrderBookService orderBookService)
+        IOrderBookService orderBookService, IConfiguration configuration)
     {
         _hubContext = hubContext;
         _orderBookService = orderBookService;
+        _websocketUrl = configuration["WebSocketUrl"];
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await _clientWebSocket.ConnectAsync(new Uri(WebsocketUrl), CancellationToken.None);
+        await _clientWebSocket.ConnectAsync(new Uri(_websocketUrl), CancellationToken.None);
 
         var websocketMessage = Encoding.UTF8.GetBytes(@"{
             ""event"": ""bts:subscribe"",
@@ -42,7 +54,7 @@ public abstract class OrderBookWebSocketBackgroundService : BackgroundService
 
     private async Task Receiving(ClientWebSocket clientWebSocket)
     {
-        var buffer = new byte[2048];
+        var buffer = new byte[WebSocketResultBufferSize];
 
         while (true)
         {
@@ -50,12 +62,20 @@ public abstract class OrderBookWebSocketBackgroundService : BackgroundService
 
             if (result.MessageType == WebSocketMessageType.Text)
             {
-                var orderBook = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                await _hubContext.Clients.All.SendAsync("ReceiveOrderBook", orderBook);
+                var orderBookString = Encoding.UTF8.GetString(buffer, index: 0, result.Count);
+                var orderBook = JsonSerializer.Deserialize<OrderBookDto>(orderBookString, deserealizeOptions);
+                orderBook!.TradingPair = TradingPair;
+                if (orderBook.Event != WebSockerResultEvent)
+                {
+                    continue;
+                }
+
+                await _hubContext.Clients.All.SendAsync("ReceiveOrderBook", orderBookString);
+                await _orderBookService.CreateOrderBookAsync(orderBook);
             }
             else if (result.MessageType == WebSocketMessageType.Close)
             {
-                await clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                await clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
                 break;
             }
 
@@ -64,7 +84,7 @@ public abstract class OrderBookWebSocketBackgroundService : BackgroundService
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+        await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
         await base.StopAsync(cancellationToken);
     }
 

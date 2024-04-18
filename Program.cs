@@ -2,6 +2,7 @@ using OrderBookTestTask.Interfaces;
 using OrderBookTestTask.Components;
 using OrderBookTestTask.Services;
 using OrderBookTestTask.Services.Background;
+using OrderBookTestTask.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +15,8 @@ builder.Services.AddTransient<IOrderBookService, OrderBookService>();
 builder.Services.AddHostedService<BtcEurOrderBookWebSocketBackgroundService>();
 builder.Services.AddHostedService<BtcUsdOrderBookWebSocketBackgroundService>();
 
+builder.Services.Configure<OrderBookSnapshotsDatabaseSettings>(
+    builder.Configuration.GetSection("OrderBookDatabase"));
 
 var app = builder.Build();
 

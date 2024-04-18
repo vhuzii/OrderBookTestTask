@@ -6,13 +6,10 @@ using OrderBookTestTask.Interfaces;
 
 namespace OrderBookTestTask.Services.Background;
 
-public class BtcUsdOrderBookWebSocketBackgroundService : OrderBookWebSocketBackgroundService
+public class BtcUsdOrderBookWebSocketBackgroundService(IHubContext<OrderBookHub> hubContext,
+    IOrderBookService orderBookService, IConfiguration configuration) 
+    : OrderBookWebSocketBackgroundService(hubContext, orderBookService, configuration)
 {
-    public BtcUsdOrderBookWebSocketBackgroundService(IHubContext<OrderBookHub> hubContext, 
-        IOrderBookService orderBookService) : base(hubContext, orderBookService)
-    {
-    }
-
     public override string TradingPair => TradingPairs.BtcUsd;
 }
 
