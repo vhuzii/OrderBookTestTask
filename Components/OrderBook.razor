@@ -9,7 +9,7 @@
 <PageTitle>@TradingPair</PageTitle>
 
 <h1>@TradingPair</h1>
-@if (askCharts.Count == 0 || bidCharts.Count == 0)
+@if (_askCharts.Count == 0 || _bidCharts.Count == 0)
 {
     <p>Loading...</p>
 }
@@ -18,10 +18,10 @@ else
 <div class="row">
     <div class="col-md-6">
         <RadzenChart>
-            <RadzenColumnSeries Data="@bidCharts" CategoryProperty="Label" Title="Bids"
+            <RadzenColumnSeries Data="@_bidCharts" CategoryProperty="Label" Title="Bids"
                 LineType="LineType.Dashed" ValueProperty="Value" Fill="green" />
             <RadzenColumnOptions Radius="5" />
-            <RadzenValueAxis Formatter="@formatValue">
+            <RadzenValueAxis Formatter="@FormatValue">
                 <RadzenGridLines Visible="true" />
                 <RadzenAxisTitle Text="Amount" />
             </RadzenValueAxis>
@@ -29,10 +29,10 @@ else
     </div>
     <div class="col-md-6">
         <RadzenChart>
-            <RadzenColumnSeries Data="@askCharts" CategoryProperty="Label" Title="Asks"
+            <RadzenColumnSeries Data="@_askCharts" CategoryProperty="Label" Title="Asks"
                 LineType="LineType.Dashed" ValueProperty="Value" Fill="red" />
             <RadzenColumnOptions Radius="5" />
-            <RadzenValueAxis Formatter="@formatValue">
+            <RadzenValueAxis Formatter="@FormatValue">
                 <RadzenGridLines Visible="true" />
             </RadzenValueAxis>
         </RadzenChart>
@@ -44,8 +44,8 @@ else
 @code {
     private HubConnection? _hubConnection;
 
-    private List<ChartDto> askCharts = new();
-    private List<ChartDto> bidCharts = new();
+    private List<ChartDto> _askCharts = new();
+    private List<ChartDto> _bidCharts = new();
 
     [Parameter]
     public string? TradingPair { get; set; }
@@ -62,19 +62,19 @@ else
     protected override async Task OnInitializedAsync()
     {
         _hubConnection = new HubConnectionBuilder()
-            .WithUrl(Navigation.ToAbsoluteUri(Constants.SignalR.HubUrls.OrderBookHub), configureHttpConnection)
+            .WithUrl(Navigation.ToAbsoluteUri(Constants.SignalR.HubUrls.OrderBookHub), ConfigureHttpConnection)
             .Build();
             
 
         _hubConnection.On<string[][], string[][]>(Constants.SignalR.Methods.ReceiveOrderBook, (asks, bids) =>
         {   
-            askCharts = asks.Select(ask => new ChartDto
+            _askCharts = asks.Select(ask => new ChartDto
             {
                 Label = ask[0],
                 Value = double.Parse(ask[1])
             })
             .ToList();
-            bidCharts = bids.Select(bid => new ChartDto
+            _bidCharts = bids.Select(bid => new ChartDto
             {
                 Label = bid[0],
                 Value = double.Parse(bid[1])
@@ -88,7 +88,7 @@ else
         await _hubConnection.InvokeAsync(Constants.SignalR.Methods.JoinRoom, TradingPair);
     }
 
-    private static Action<HttpConnectionOptions> configureHttpConnection = (configureHttpConnection) =>
+    private static Action<HttpConnectionOptions> ConfigureHttpConnection = (configureHttpConnection) =>
         configureHttpConnection.HttpMessageHandlerFactory = (message) =>
         {
             if (message is HttpClientHandler clientHandler)
@@ -97,7 +97,7 @@ else
             return message;
         };
 
-    private string formatValue(object value)
+    private string FormatValue(object value)
     {
         return Math.Round((double)value, 3).ToString();
     }
