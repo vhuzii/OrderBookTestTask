@@ -8,21 +8,31 @@
 <PageTitle>@TradingPair</PageTitle>
 
 <h1>@TradingPair</h1>
-@if (_orderBook == null)
+@if (Asks.Count() == 0 || Bids.Count() == 0)
 {
     <p>Loading...</p>
 }
 else
 {
-    <p>Asks: @_orderBook?.Data.Asks.Select(ask => ask[0]).First()</p>
+    <p>Asks: @Asks.Select(ask => ask[0]).First()</p>
 }
 
 @code {
+    private HubConnection? _hubConnection;
+    private string[][] Asks { get; set; } = new string[0][];
+    private string[][] Bids { get; set; } = new string[0][];
+
     [Parameter]
     public string? TradingPair { get; set; }
 
-    private HubConnection? _hubConnection;
-    private OrderBookDto? _orderBook;
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.DisposeAsync();
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -31,9 +41,10 @@ else
             .Build();
             
 
-        _hubConnection.On<OrderBookDto>(Constants.SignalR.Methods.ReceiveOrderBook, (orderBook) =>
+        _hubConnection.On<string[][], string[][]>(Constants.SignalR.Methods.ReceiveOrderBook, (asks, bids) =>
         {   
-            _orderBook = orderBook;
+            Asks = asks;
+            Bids = bids;
             InvokeAsync(StateHasChanged);
         });
 
@@ -50,12 +61,4 @@ else
             return message;
         };
 
-    
-    public async ValueTask DisposeAsync()
-    {
-        if (_hubConnection is not null)
-        {
-            await _hubConnection.DisposeAsync();
-        }
-    }
 }

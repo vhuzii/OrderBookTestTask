@@ -19,13 +19,12 @@ public abstract class OrderBookWebSocketBackgroundService : BackgroundService
         PropertyNameCaseInsensitive = true
     };
     
-    public abstract string TradingPair { get; }
-
     private readonly IHubContext<OrderBookHub> _hubContext;
     private readonly IOrderBookService _orderBookService;
     private readonly ClientWebSocket _clientWebSocket = new();
     private readonly string _websocketUrl;
 
+    public abstract string TradingPair { get; }
 
     public OrderBookWebSocketBackgroundService(IHubContext<OrderBookHub> hubContext, 
         IOrderBookService orderBookService, IConfiguration configuration)
@@ -39,18 +38,39 @@ public abstract class OrderBookWebSocketBackgroundService : BackgroundService
     {
         await _clientWebSocket.ConnectAsync(new Uri(_websocketUrl), CancellationToken.None);
 
-        var websocketMessage = Encoding.UTF8.GetBytes(@"{
-            ""event"": ""bts:subscribe"",
-            ""data"": {
-                ""channel"": ""order_book_" + TradingPair + @"""
-            }
-        }");
+        var websocketMessage = Encoding.UTF8.GetBytes(GetMessage(TradingPair));
         await _clientWebSocket.SendAsync(websocketMessage, WebSocketMessageType.Text, true, CancellationToken.None);
 
         var receiving = Receiving(_clientWebSocket);
 
         await receiving;
     }
+
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        await StopWebSocket();
+        await base.StopAsync(cancellationToken);
+    }
+
+    public override void Dispose()
+    {
+        _clientWebSocket.Dispose();
+        base.Dispose();
+    }
+
+    private static string GetMessage(string tradingPair) => @"{
+        ""event"": ""bts:subscribe"",
+        ""data"": {
+            ""channel"": ""order_book_" + tradingPair + @"""
+        }
+    }";
+
+    private static CreateOrderBookDto GetCreateOrderBookDto(OrderBookDtoJsonResponse orderBook) => new()
+    {
+        Asks = orderBook.Data.Asks,
+        Bids = orderBook.Data.Bids,
+        TradingPair = orderBook.TradingPair
+    };
 
     private async Task Receiving(ClientWebSocket clientWebSocket)
     {
@@ -67,34 +87,28 @@ public abstract class OrderBookWebSocketBackgroundService : BackgroundService
             if (result.MessageType == WebSocketMessageType.Text)
             {
                 var orderBookString = Encoding.UTF8.GetString(buffer, index: 0, result.Count);
-                var orderBook = JsonSerializer.Deserialize<OrderBookDto>(orderBookString, deserealizeOptions);
-                orderBook!.TradingPair = TradingPair;
-                if (orderBook.Event != WebSockerResultEvent)
+                var orderBookResponse = JsonSerializer.Deserialize<OrderBookDtoJsonResponse>(orderBookString, deserealizeOptions);
+                orderBookResponse!.TradingPair = TradingPair;
+                if (orderBookResponse.Event != WebSockerResultEvent)
                 {
                     continue;
                 }
 
-                await _hubContext.Clients.Group(TradingPair).SendAsync(Constants.SignalR.Methods.ReceiveOrderBook, orderBook);
-                await _orderBookService.CreateOrderBookAsync(orderBook);
+                await _hubContext.Clients.Group(TradingPair).SendAsync(Constants.SignalR.Methods.ReceiveOrderBook, 
+                    orderBookResponse.Data.Asks, orderBookResponse.Data.Bids);
+                await _orderBookService.CreateOrderBookAsync(GetCreateOrderBookDto(orderBookResponse));
             }
             else if (result.MessageType == WebSocketMessageType.Close)
             {
-                await clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+                await StopWebSocket();
                 break;
             }
 
         }
     }
-
-    public override async Task StopAsync(CancellationToken cancellationToken)
+    
+    private async Task StopWebSocket()
     {
         await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
-        await base.StopAsync(cancellationToken);
-    }
-
-    public override void Dispose()
-    {
-        _clientWebSocket.Dispose();
-        base.Dispose();
     }
 }

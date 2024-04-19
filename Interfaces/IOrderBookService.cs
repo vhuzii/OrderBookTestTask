@@ -4,6 +4,6 @@ using OrderBookTestTask.Models;
 namespace OrderBookTestTask.Interfaces;
 public interface IOrderBookService
 {
-    Task<string> GetOrderBookAsync();
-    Task CreateOrderBookAsync(OrderBookDto orderBook);
+    public Task<OrderBook> GetOrderBookAsync(string tradingPair);
+    public Task CreateOrderBookAsync(CreateOrderBookDto createOrderBookDto);
 }

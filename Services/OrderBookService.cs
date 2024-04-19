@@ -8,37 +8,47 @@ namespace OrderBookTestTask.Services;
 
 public class OrderBookService : IOrderBookService
 {
-    private readonly IMongoCollection<OrderBook> _orderBooksCollection;
+    private readonly IMongoDatabase _mongoDatabase;
+    private readonly IOptions<OrderBookSnapshotsDatabaseSettings> _orderBookSnapshotsDatabaseSettings;
     public OrderBookService(IOptions<OrderBookSnapshotsDatabaseSettings> orderBookSnapshotsDatabaseSettings)
     {
         var mongoClient = new MongoClient(
             orderBookSnapshotsDatabaseSettings.Value.ConnectionString);
 
-        var mongoDatabase = mongoClient.GetDatabase(
+        _mongoDatabase = mongoClient.GetDatabase(
             orderBookSnapshotsDatabaseSettings.Value.DatabaseName);
+        
+        _orderBookSnapshotsDatabaseSettings = orderBookSnapshotsDatabaseSettings;
 
-        _orderBooksCollection = mongoDatabase.GetCollection<OrderBook>(
-            orderBookSnapshotsDatabaseSettings.Value.OrderBookCollectionName);
     }
-    public Task<string> GetOrderBookAsync()
+    
+    public async Task<OrderBook> GetOrderBookAsync(string tradingPair)
     {
-        throw new NotImplementedException();
+        var orderBooksCollection = GetCollection(tradingPair);
+        var orderBook = await orderBooksCollection.Find(orderBook => true).FirstOrDefaultAsync();
+        return orderBook;
     }
 
-    public async Task CreateOrderBookAsync(OrderBookDto orderBookDto)
+    public async Task CreateOrderBookAsync(CreateOrderBookDto createOrderBookDto)
     {
-        await _orderBooksCollection.InsertOneAsync(ConvertToOrderBook(orderBookDto));
+        var orderBooksCollection = GetCollection(createOrderBookDto.TradingPair);
+        await orderBooksCollection.InsertOneAsync(ConvertToOrderBook(createOrderBookDto));
     }
 
-    private static OrderBook ConvertToOrderBook(OrderBookDto orderBookDto)
+    private static OrderBook ConvertToOrderBook(CreateOrderBookDto createOrderBookDto)
     {
         return new OrderBook
         {
             Id = Guid.NewGuid().ToString(),
-            Asks = orderBookDto.Data.Asks,
-            Bids = orderBookDto.Data.Bids,
+            Asks = createOrderBookDto.Asks,
+            Bids = createOrderBookDto.Bids,
             Created = DateTime.UtcNow,
-            TradingPair = orderBookDto.TradingPair
+            TradingPair = createOrderBookDto.TradingPair
         };
+    }
+
+    private IMongoCollection<OrderBook> GetCollection(string tradingPair) 
+    {
+        return _mongoDatabase.GetCollection<OrderBook>(_orderBookSnapshotsDatabaseSettings.Value.OrderBookCollectionNamePrefix + tradingPair);
     }
 }
