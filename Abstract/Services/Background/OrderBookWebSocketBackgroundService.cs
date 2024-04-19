@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.SignalR;
 using OrderBookTestTask.Dtos;
 using OrderBookTestTask.Hubs;
 using OrderBookTestTask.Interfaces;
-using OrderBookTestTask.Models;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -14,6 +13,7 @@ public abstract class OrderBookWebSocketBackgroundService(IHubContext<OrderBookH
 {
     private const int WebSocketResultBufferSize = 10240;
     private const string WebSockerResultEvent = "data";
+    private const int DelayMilliseconds = 200;
 
     private static readonly JsonSerializerOptions deserealizeOptions = new()
     {
@@ -22,9 +22,9 @@ public abstract class OrderBookWebSocketBackgroundService(IHubContext<OrderBookH
     
     private readonly IHubContext<OrderBookHub> _hubContext = hubContext;
     private readonly IOrderBookService _orderBookService = orderBookService;
-    private readonly ClientWebSocket _clientWebSocket = new();
     private readonly string _websocketUrl = configuration["WebSocketUrl"];
     private readonly ILogger<OrderBookWebSocketBackgroundService> _logger = logger;
+    private ClientWebSocket _clientWebSocket;
 
     public abstract string TradingPair { get; }
 
@@ -55,7 +55,7 @@ public abstract class OrderBookWebSocketBackgroundService(IHubContext<OrderBookH
         }
     }";
 
-    private static CreateOrderBookDto GetCreateOrderBookDto(OrderBookDtoJsonResponse orderBook) => new()
+    private static CreateOrderBookDto GetCreateOrderBookDto(OrderBookJsonResponseDto orderBook) => new()
     {
         Asks = orderBook.Data.Asks,
         Bids = orderBook.Data.Bids,
@@ -66,6 +66,7 @@ public abstract class OrderBookWebSocketBackgroundService(IHubContext<OrderBookH
     {
         try
         {
+            _clientWebSocket = new();
             await _clientWebSocket.ConnectAsync(new Uri(_websocketUrl), stoppingToken);
             await _clientWebSocket.SendAsync(Encoding.UTF8.GetBytes(GetMessage(TradingPair)), WebSocketMessageType.Text, true, stoppingToken);
             await Receiving(_clientWebSocket);
@@ -82,6 +83,7 @@ public abstract class OrderBookWebSocketBackgroundService(IHubContext<OrderBookH
 
         while (true)
         {
+            await Task.Delay(DelayMilliseconds);
             var result = await clientWebSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
             if (result.Count == 0)
             {
@@ -91,15 +93,17 @@ public abstract class OrderBookWebSocketBackgroundService(IHubContext<OrderBookH
             if (result.MessageType == WebSocketMessageType.Text)
             {
                 var orderBookString = Encoding.UTF8.GetString(buffer, index: 0, result.Count);
-                var orderBookResponse = JsonSerializer.Deserialize<OrderBookDtoJsonResponse>(orderBookString, deserealizeOptions);
+                var orderBookResponse = JsonSerializer.Deserialize<OrderBookJsonResponseDto>(orderBookString, deserealizeOptions);
                 orderBookResponse!.TradingPair = TradingPair;
                 if (orderBookResponse.Event != WebSockerResultEvent)
                 {
                     continue;
                 }
 
+                var numberOfElementsToSend = 15;
+
                 await _hubContext.Clients.Group(TradingPair).SendAsync(Constants.SignalR.Methods.ReceiveOrderBook, 
-                    orderBookResponse.Data.Asks, orderBookResponse.Data.Bids);
+                    orderBookResponse.Data.Asks.Take(numberOfElementsToSend), orderBookResponse.Data.Bids.Take(numberOfElementsToSend));
                 await _orderBookService.CreateOrderBookAsync(GetCreateOrderBookDto(orderBookResponse));
             }
             else if (result.MessageType == WebSocketMessageType.Close)
