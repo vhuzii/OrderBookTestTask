@@ -21,7 +21,7 @@ else
             <RadzenColumnSeries Data="@bidCharts" CategoryProperty="Label" Title="Bids"
                 LineType="LineType.Dashed" ValueProperty="Value" Fill="green" />
             <RadzenColumnOptions Radius="5" />
-            <RadzenValueAxis>
+            <RadzenValueAxis Formatter="@formatValue">
                 <RadzenGridLines Visible="true" />
                 <RadzenAxisTitle Text="Amount" />
             </RadzenValueAxis>
@@ -32,7 +32,7 @@ else
             <RadzenColumnSeries Data="@askCharts" CategoryProperty="Label" Title="Asks"
                 LineType="LineType.Dashed" ValueProperty="Value" Fill="red" />
             <RadzenColumnOptions Radius="5" />
-            <RadzenValueAxis>
+            <RadzenValueAxis Formatter="@formatValue">
                 <RadzenGridLines Visible="true" />
             </RadzenValueAxis>
         </RadzenChart>
@@ -68,16 +68,16 @@ else
 
         _hubConnection.On<string[][], string[][]>(Constants.SignalR.Methods.ReceiveOrderBook, (asks, bids) =>
         {   
-            askCharts = asks.Select(x => new ChartDto
+            askCharts = asks.Select(ask => new ChartDto
             {
-                Label = x[0],
-                Value = Math.Round(double.Parse(x[1]), 3)
+                Label = ask[0],
+                Value = double.Parse(ask[1])
             })
             .ToList();
-            bidCharts = bids.Select(x => new ChartDto
+            bidCharts = bids.Select(bid => new ChartDto
             {
-                Label = x[0],
-                Value = Math.Round(double.Parse(x[1]), 3)
+                Label = bid[0],
+                Value = double.Parse(bid[1])
             })
             .Reverse()
             .ToList();
@@ -97,4 +97,8 @@ else
             return message;
         };
 
+    private string formatValue(object value)
+    {
+        return Math.Round((double)value, 3).ToString();
+    }
 }
