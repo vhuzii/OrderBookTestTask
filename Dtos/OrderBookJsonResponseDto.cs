@@ -1,6 +1,6 @@
 namespace OrderBookTestTask.Dtos;
 
-public class OrderBookDtoJsonResponse
+public class OrderBookJsonResponseDto
 {
     public Data Data { get; set; } = null!;
     public string Event { get; set; } = null!;
