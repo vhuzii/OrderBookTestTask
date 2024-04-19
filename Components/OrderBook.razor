@@ -42,6 +42,8 @@ else
 
 
 @code {
+    private const int NumberOfElementsToDisplay = 15;
+
     private HubConnection? _hubConnection;
 
     private List<ChartDto> _askCharts = new();
@@ -73,12 +75,14 @@ else
                 Label = ask[0],
                 Value = double.Parse(ask[1])
             })
+            .Take(NumberOfElementsToDisplay)
             .ToList();
             _bidCharts = bids.Select(bid => new ChartDto
             {
                 Label = bid[0],
                 Value = double.Parse(bid[1])
             })
+            .Take(NumberOfElementsToDisplay)
             .Reverse()
             .ToList();
             InvokeAsync(StateHasChanged);

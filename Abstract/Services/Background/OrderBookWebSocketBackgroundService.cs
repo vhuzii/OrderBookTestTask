@@ -100,10 +100,8 @@ public abstract class OrderBookWebSocketBackgroundService(IHubContext<OrderBookH
                     continue;
                 }
 
-                var numberOfElementsToSend = 15;
-
                 await _hubContext.Clients.Group(TradingPair).SendAsync(Constants.SignalR.Methods.ReceiveOrderBook, 
-                    orderBookResponse.Data.Asks.Take(numberOfElementsToSend), orderBookResponse.Data.Bids.Take(numberOfElementsToSend));
+                    orderBookResponse.Data.Asks, orderBookResponse.Data.Bids);
                 await _orderBookService.CreateOrderBookAsync(GetCreateOrderBookDto(orderBookResponse));
             }
             else if (result.MessageType == WebSocketMessageType.Close)
