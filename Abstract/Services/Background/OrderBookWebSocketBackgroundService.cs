@@ -7,7 +7,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 
-namespace OrderBookTestTask.Abstractions;
+namespace OrderBookTestTask.Abstract.Services.Background;
 
 public abstract class OrderBookWebSocketBackgroundService(IHubContext<OrderBookHub> hubContext,
     IOrderBookService orderBookService, IConfiguration configuration, ILogger<OrderBookWebSocketBackgroundService> logger) : BackgroundService 

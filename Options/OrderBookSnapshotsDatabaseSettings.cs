@@ -1,6 +1,6 @@
-namespace OrderBookTestTask.Models;
+namespace OrderBookTestTask.Options;
 
-public class OrderBookSnapshotsDatabaseSettings 
+public class OrderBookSnapshotsDatabaseOptions 
 {
     public string ConnectionString { get; set; } = null!;
     public string DatabaseName { get; set; } = null!;

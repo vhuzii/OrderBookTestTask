@@ -3,14 +3,15 @@ using MongoDB.Driver;
 using OrderBookTestTask.Dtos;
 using OrderBookTestTask.Interfaces;
 using OrderBookTestTask.Models;
+using OrderBookTestTask.Options;
 
 namespace OrderBookTestTask.Services;
 
 public class OrderBookService : IOrderBookService
 {
     private readonly IMongoDatabase _mongoDatabase;
-    private readonly IOptions<OrderBookSnapshotsDatabaseSettings> _orderBookSnapshotsDatabaseSettings;
-    public OrderBookService(IOptions<OrderBookSnapshotsDatabaseSettings> orderBookSnapshotsDatabaseSettings)
+    private readonly IOptions<OrderBookSnapshotsDatabaseOptions> _orderBookSnapshotsDatabaseSettings;
+    public OrderBookService(IOptions<OrderBookSnapshotsDatabaseOptions> orderBookSnapshotsDatabaseSettings)
     {
         var mongoClient = new MongoClient(
             orderBookSnapshotsDatabaseSettings.Value.ConnectionString);

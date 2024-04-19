@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.SignalR;
-using OrderBookTestTask.Abstractions;
+using OrderBookTestTask.Abstract.Services.Background;
 using OrderBookTestTask.Constants;
 using OrderBookTestTask.Hubs;
 using OrderBookTestTask.Interfaces;
