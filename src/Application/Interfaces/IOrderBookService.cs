@@ -1,5 +1,5 @@
 using OrderBookTestTask.Application.Dtos;
-using OrderBookTestTask.Application.Models;
+using OrderBookTestTask.Data.Models;
 
 namespace OrderBookTestTask.Application.Interfaces;
 public interface IOrderBookService

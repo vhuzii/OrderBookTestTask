@@ -1,0 +1,35 @@
+using Microsoft.Extensions.Options;
+using MongoDB.Driver;
+using OrderBookTestTask.Data.Models;
+using OrderBookTestTask.Data.Options;
+
+namespace OrderBookTestTask.Data.Interfaces;
+
+public class OrderBookRepository : IOrderBookRepository
+{
+
+    private readonly IMongoDatabase _mongoDatabase;
+    private IMongoCollection<OrderBook> _orderBookCollection;
+
+    public OrderBookRepository(IOptions<OrderBookSnapshotsDatabaseOptions> orderBookSnapshotsDatabaseSettings)
+    {
+        var mongoClient = new MongoClient(
+            orderBookSnapshotsDatabaseSettings.Value.ConnectionString);
+
+        _mongoDatabase = mongoClient.GetDatabase(
+            orderBookSnapshotsDatabaseSettings.Value.DatabaseName);
+
+        _orderBookCollection = _mongoDatabase.GetCollection<OrderBook>(orderBookSnapshotsDatabaseSettings.Value.OrderBookCollectionName);
+    }
+
+    public async Task<OrderBook> GetOrderBookAsync(string tradingPair)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task CreateOrderBookAsync(OrderBook orderBook)
+    {
+        await _orderBookCollection.InsertOneAsync(orderBook);
+    }
+
+}

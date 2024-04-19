@@ -3,8 +3,9 @@ using OrderBookTestTask.Application.Services;
 using OrderBookTestTask.Application.Services.Background;
 using OrderBookTestTask.Application.Hubs;
 using OrderBookTestTask.Application.Constants.SignalR;
-using OrderBookTestTask.Application.Options;
+using OrderBookTestTask.Data.Options;
 using UI.Components;
+using OrderBookTestTask.Data.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +15,7 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddSignalR();
 builder.Services.AddTransient<IOrderBookService, OrderBookService>();
+builder.Services.AddTransient<IOrderBookRepository, OrderBookRepository>();
 builder.Services.AddHostedService<BtcEurOrderBookWebSocketBackgroundService>();
 builder.Services.AddHostedService<BtcUsdOrderBookWebSocketBackgroundService>();
 

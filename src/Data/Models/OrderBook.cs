@@ -1,6 +1,6 @@
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace OrderBookTestTask.Application.Models;
+namespace OrderBookTestTask.Data.Models;
 
 public class OrderBook 
 {
