@@ -32,6 +32,9 @@ else
             <RadzenColumnSeries Data="@askCharts" CategoryProperty="Label" Title="Asks"
                 LineType="LineType.Dashed" ValueProperty="Value" Fill="red" />
             <RadzenColumnOptions Radius="5" />
+            <RadzenValueAxis>
+                <RadzenGridLines Visible="true" />
+            </RadzenValueAxis>
         </RadzenChart>
     </div>
 </div>
