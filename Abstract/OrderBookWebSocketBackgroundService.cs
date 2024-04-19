@@ -9,7 +9,8 @@ using System.Text.Json;
 
 namespace OrderBookTestTask.Abstractions;
 
-public abstract class OrderBookWebSocketBackgroundService : BackgroundService 
+public abstract class OrderBookWebSocketBackgroundService(IHubContext<OrderBookHub> hubContext,
+    IOrderBookService orderBookService, IConfiguration configuration, ILogger<OrderBookWebSocketBackgroundService> logger) : BackgroundService 
 {
     private const int WebSocketResultBufferSize = 10240;
     private const string WebSockerResultEvent = "data";
@@ -19,32 +20,13 @@ public abstract class OrderBookWebSocketBackgroundService : BackgroundService
         PropertyNameCaseInsensitive = true
     };
     
-    private readonly IHubContext<OrderBookHub> _hubContext;
-    private readonly IOrderBookService _orderBookService;
+    private readonly IHubContext<OrderBookHub> _hubContext = hubContext;
+    private readonly IOrderBookService _orderBookService = orderBookService;
     private readonly ClientWebSocket _clientWebSocket = new();
-    private readonly string _websocketUrl;
+    private readonly string _websocketUrl = configuration["WebSocketUrl"];
+    private readonly ILogger<OrderBookWebSocketBackgroundService> _logger = logger;
 
     public abstract string TradingPair { get; }
-
-    public OrderBookWebSocketBackgroundService(IHubContext<OrderBookHub> hubContext, 
-        IOrderBookService orderBookService, IConfiguration configuration)
-    {
-        _hubContext = hubContext;
-        _orderBookService = orderBookService;
-        _websocketUrl = configuration["WebSocketUrl"];
-    }
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        await _clientWebSocket.ConnectAsync(new Uri(_websocketUrl), CancellationToken.None);
-
-        var websocketMessage = Encoding.UTF8.GetBytes(GetMessage(TradingPair));
-        await _clientWebSocket.SendAsync(websocketMessage, WebSocketMessageType.Text, true, CancellationToken.None);
-
-        var receiving = Receiving(_clientWebSocket);
-
-        await receiving;
-    }
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
@@ -56,6 +38,14 @@ public abstract class OrderBookWebSocketBackgroundService : BackgroundService
     {
         _clientWebSocket.Dispose();
         base.Dispose();
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (true)
+        {
+            await StartWebSocket(stoppingToken);
+        }
     }
 
     private static string GetMessage(string tradingPair) => @"{
@@ -71,6 +61,20 @@ public abstract class OrderBookWebSocketBackgroundService : BackgroundService
         Bids = orderBook.Data.Bids,
         TradingPair = orderBook.TradingPair
     };
+
+    private async Task StartWebSocket(CancellationToken stoppingToken)
+    {
+        try
+        {
+            await _clientWebSocket.ConnectAsync(new Uri(_websocketUrl), stoppingToken);
+            await _clientWebSocket.SendAsync(Encoding.UTF8.GetBytes(GetMessage(TradingPair)), WebSocketMessageType.Text, true, stoppingToken);
+            await Receiving(_clientWebSocket);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while connecting to the WebSocket");
+        }
+    }
 
     private async Task Receiving(ClientWebSocket clientWebSocket)
     {
