@@ -96,7 +96,6 @@ public abstract class OrderBookWebSocketBackgroundService(IHubContext<OrderBookH
             }
             else if (result.MessageType == WebSocketMessageType.Close)
             {
-                await orderBookWebSockerService.StopWebSocket();
                 await StopAsync(cancellationToken);
                 break;
             }

@@ -7,7 +7,7 @@ using OrderBookTestTask.Application.Hubs;
 using OrderBookTestTask.Application.Interfaces;
 using OrderBookTestTask.Application.Services.Background;
 
-namespace Application.UnitTests;
+namespace Application.UnitTests.Services.Background;
 
 public class BtcEurOrderBookWebSocketBackgroundServiceTests
 {
