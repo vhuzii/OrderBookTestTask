@@ -9,8 +9,8 @@ using OrderBookTestTask.Application.Interfaces;
 namespace OrderBookTestTask.Application.Services.Background;
 
 public class BtcEurOrderBookWebSocketBackgroundService(IHubContext<OrderBookHub> hubContext,
-    IOrderBookService orderBookService, IConfiguration configuration, ILogger<OrderBookWebSocketBackgroundService> logger) 
-    : OrderBookWebSocketBackgroundService(hubContext, orderBookService, configuration, logger)
+    IOrderBookService orderBookService, IOrderBookWebSockerService orderBookWebSockerService, ILogger<OrderBookWebSocketBackgroundService> logger) 
+    : OrderBookWebSocketBackgroundService(hubContext, orderBookService, orderBookWebSockerService, logger)
 {
     public override string TradingPair => TradingPairs.BtcEur;
 }

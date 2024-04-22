@@ -12,9 +12,9 @@ using System.Text.Json;
 namespace OrderBookTestTask.Application.Abstract.Services.Background;
 
 public abstract class OrderBookWebSocketBackgroundService(IHubContext<OrderBookHub> hubContext,
-    IOrderBookService orderBookService, IConfiguration configuration, ILogger<OrderBookWebSocketBackgroundService> logger) : BackgroundService 
+    IOrderBookService orderBookService, IOrderBookWebSockerService orderBookWebSockerService, ILogger<OrderBookWebSocketBackgroundService> logger) 
+        : BackgroundService 
 {
-    private const int WebSocketResultBufferSize = 10240;
     private const string WebSockerResultEvent = "data";
     private const int DelayMilliseconds = 200;
 
@@ -25,21 +25,20 @@ public abstract class OrderBookWebSocketBackgroundService(IHubContext<OrderBookH
     
     private readonly IHubContext<OrderBookHub> _hubContext = hubContext;
     private readonly IOrderBookService _orderBookService = orderBookService;
-    private readonly string _websocketUrl = configuration["WebSocketUrl"]!;
+    private readonly IOrderBookWebSockerService _orderBookWebSockerService = orderBookWebSockerService;
     private readonly ILogger<OrderBookWebSocketBackgroundService> _logger = logger;
-    private ClientWebSocket _clientWebSocket = new();
 
     public abstract string TradingPair { get; }
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        await StopWebSocket();
+        await _orderBookWebSockerService.StopWebSocket();
         await base.StopAsync(cancellationToken);
     }
 
     public override void Dispose()
     {
-        _clientWebSocket.Dispose();
+        _orderBookWebSockerService.Dispose();
         base.Dispose();
     }
 
@@ -51,28 +50,19 @@ public abstract class OrderBookWebSocketBackgroundService(IHubContext<OrderBookH
         }
     }
 
-    private static string GetMessage(string tradingPair) => @"{
-        ""event"": ""bts:subscribe"",
-        ""data"": {
-            ""channel"": ""order_book_" + tradingPair + @"""
-        }
-    }";
-
-    private static CreateOrderBookDto GetCreateOrderBookDto(OrderBookJsonResponseDto orderBook) => new()
+    private CreateOrderBookDto GetCreateOrderBookDto(OrderBookJsonResponseDto orderBook) => new()
     {
         Asks = orderBook.Data.Asks,
         Bids = orderBook.Data.Bids,
-        TradingPair = orderBook.TradingPair
+        TradingPair = TradingPair
     };
 
-    private async Task StartWebSocket(CancellationToken stoppingToken)
+    private async Task StartWebSocket(CancellationToken cancellationToken)
     {
         try
         {
-            _clientWebSocket = new();
-            await _clientWebSocket.ConnectAsync(new Uri(_websocketUrl), stoppingToken);
-            await _clientWebSocket.SendAsync(Encoding.UTF8.GetBytes(GetMessage(TradingPair)), WebSocketMessageType.Text, true, stoppingToken);
-            await Receiving(_clientWebSocket);
+            await _orderBookWebSockerService.Subscribe(TradingPair, cancellationToken);
+            await Receiving(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -80,14 +70,13 @@ public abstract class OrderBookWebSocketBackgroundService(IHubContext<OrderBookH
         }
     }
 
-    private async Task Receiving(ClientWebSocket clientWebSocket)
+    private async Task Receiving(CancellationToken cancellationToken)
     {
-        var buffer = new byte[WebSocketResultBufferSize];
 
         while (true)
         {
-            await Task.Delay(DelayMilliseconds);
-            var result = await clientWebSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+            await Task.Delay(DelayMilliseconds, cancellationToken);
+            var (result, buffer) = await _orderBookWebSockerService.ReceiveAsync(cancellationToken);
             if (result.Count == 0)
             {
                 continue;
@@ -97,27 +86,20 @@ public abstract class OrderBookWebSocketBackgroundService(IHubContext<OrderBookH
             {
                 var orderBookString = Encoding.UTF8.GetString(buffer, index: 0, result.Count);
                 var orderBookResponse = JsonSerializer.Deserialize<OrderBookJsonResponseDto>(orderBookString, deserealizeOptions);
-                orderBookResponse!.TradingPair = TradingPair;
-                if (orderBookResponse.Event != WebSockerResultEvent)
+                if (orderBookResponse?.Event != WebSockerResultEvent)
                 {
                     continue;
                 }
-
                 await _hubContext.Clients.Group(TradingPair).SendAsync(Constants.SignalR.Methods.ReceiveOrderBook, 
                     orderBookResponse.Data.Asks, orderBookResponse.Data.Bids);
                 await _orderBookService.CreateOrderBookAsync(GetCreateOrderBookDto(orderBookResponse));
             }
             else if (result.MessageType == WebSocketMessageType.Close)
             {
-                await StopWebSocket();
+                await StopAsync(cancellationToken);
                 break;
             }
 
         }
-    }
-    
-    private async Task StopWebSocket()
-    {
-        await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
     }
 }
