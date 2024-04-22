@@ -25,20 +25,20 @@ public abstract class OrderBookWebSocketBackgroundService(IHubContext<OrderBookH
     
     private readonly IHubContext<OrderBookHub> _hubContext = hubContext;
     private readonly IOrderBookService _orderBookService = orderBookService;
-    private readonly IOrderBookWebSockerService orderBookWebSockerService = orderBookWebSockerService;
+    private readonly IOrderBookWebSockerService _orderBookWebSockerService = orderBookWebSockerService;
     private readonly ILogger<OrderBookWebSocketBackgroundService> _logger = logger;
 
     public abstract string TradingPair { get; }
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        await orderBookWebSockerService.StopWebSocket();
+        await _orderBookWebSockerService.StopWebSocket();
         await base.StopAsync(cancellationToken);
     }
 
     public override void Dispose()
     {
-        orderBookWebSockerService.Dispose();
+        _orderBookWebSockerService.Dispose();
         base.Dispose();
     }
 
@@ -61,7 +61,7 @@ public abstract class OrderBookWebSocketBackgroundService(IHubContext<OrderBookH
     {
         try
         {
-            await orderBookWebSockerService.Subscribe(TradingPair, cancellationToken);
+            await _orderBookWebSockerService.Subscribe(TradingPair, cancellationToken);
             await Receiving(cancellationToken);
         }
         catch (Exception ex)
@@ -76,7 +76,7 @@ public abstract class OrderBookWebSocketBackgroundService(IHubContext<OrderBookH
         while (true)
         {
             await Task.Delay(DelayMilliseconds, cancellationToken);
-            var (result, buffer) = await orderBookWebSockerService.ReceiveAsync(cancellationToken);
+            var (result, buffer) = await _orderBookWebSockerService.ReceiveAsync(cancellationToken);
             if (result.Count == 0)
             {
                 continue;
