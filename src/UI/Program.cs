@@ -22,14 +22,7 @@ builder.Services.AddTransient<IOrderBookWebSocketService, OrderBookWebSocketServ
 builder.Services.AddHostedService<BtcEurOrderBookWebSocketBackgroundService>();
 builder.Services.AddHostedService<BtcUsdOrderBookWebSocketBackgroundService>();
 
-builder.Services.AddHttpClient("OrderBook", client => client.BaseAddress = new Uri(builder.Configuration["ApiUrl"]))
-    .ConfigurePrimaryHttpMessageHandler(() =>
-    {
-        var handler = new HttpClientHandler();
-        // Ignore SSL certificate validation
-        handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
-        return handler;
-    });
+builder.Services.AddHttpClient("OrderBook", client => client.BaseAddress = new Uri(builder.Configuration["ApiUrl"]));
 
 builder.Services.Configure<OrderBookSnapshotsDatabaseOptions>(
     builder.Configuration.GetSection("OrderBookDatabase"));

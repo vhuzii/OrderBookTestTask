@@ -74,7 +74,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         _hubConnection = new HubConnectionBuilder()
-            .WithUrl(Navigation.ToAbsoluteUri(HubUrls.OrderBookHub), ConfigureHttpConnection)
+            .WithUrl(Navigation.ToAbsoluteUri(HubUrls.OrderBookHub))
             .Build();
             
 
@@ -107,15 +107,6 @@ else
             Value = double.Parse(chart[1])
         };
     }
-
-    private static Action<HttpConnectionOptions> ConfigureHttpConnection = (configureHttpConnection) =>
-        configureHttpConnection.HttpMessageHandlerFactory = (message) =>
-        {
-            if (message is HttpClientHandler clientHandler)
-                clientHandler.ServerCertificateCustomValidationCallback +=
-                    (sender, certificate, chain, sslPolicyErrors) =>  true;
-            return message;
-        };
 
     private string FormatValue(object value)
     {
