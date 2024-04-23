@@ -56,7 +56,7 @@ app.MapHub<OrderBookHub>(HubUrls.OrderBookHub);
 
 app.MapGet("/order-book", async (string tradingPair, string dateTime, IOrderBookService orderBookService) =>
 {
-    return await orderBookService.GetOrderBookAsync(DateTime.ParseExact(dateTime, Date.DateTimeFormat, CultureInfo.InvariantCulture), tradingPair);
+    return await orderBookService.GetOrderBookAsync(DateTime.ParseExact(dateTime, Date.DateTimeRequestFormat, CultureInfo.InvariantCulture), tradingPair);
 });
 
 app.Run();

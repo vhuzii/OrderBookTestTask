@@ -128,7 +128,7 @@ else
         try 
         {
             var orderBook = await client.GetFromJsonAsync<OrderBookJsonResponseDto>("/order-book?tradingPair=" + 
-            TradingPair + "&dateTime=" + _selectedDate?.ToString(Date.DateTimeFormat));
+            TradingPair + "&dateTime=" + _selectedDate?.ToString(Date.DateTimeRequestFormat));
             _selectedCharts = new OrderBookChartsDto
             {
                 AsksChart = orderBook.Asks.Take(NumberOfElementsToDisplay).Select(ParseChart).ToList(),
