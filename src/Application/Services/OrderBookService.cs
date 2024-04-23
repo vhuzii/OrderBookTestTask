@@ -9,17 +9,23 @@ namespace OrderBookTestTask.Application.Services;
 
 public class OrderBookService(IOrderBookRepository orderBookRepository) : IOrderBookService
 {
-    private readonly IOrderBookRepository orderBookRepository = orderBookRepository;
+    private readonly IOrderBookRepository _orderBookRepository = orderBookRepository;
 
-    public async Task<OrderBook> GetOrderBookAsync(string tradingPair)
+    public async Task<OrderBookJsonResponseDto> GetOrderBookAsync(DateTime dateTime, string tradingPair)
     {
-        return await orderBookRepository.GetOrderBookAsync(tradingPair);
+        var orderBook = await _orderBookRepository.GetOrderBookAsync(dateTime, tradingPair);
+        return new OrderBookJsonResponseDto
+        {
+            Asks = orderBook.Asks,
+            Bids = orderBook.Bids,
+            TimeStamp = orderBook.Created
+        };
     }
 
     public async Task CreateOrderBookAsync(CreateOrderBookDto createOrderBookDto)
     {
         var orderBook = ConvertToOrderBook(createOrderBookDto);
-        await orderBookRepository.CreateOrderBookAsync(orderBook);
+        await _orderBookRepository.CreateOrderBookAsync(orderBook);
     }
 
     private static OrderBook ConvertToOrderBook(CreateOrderBookDto createOrderBookDto)
@@ -30,7 +36,7 @@ public class OrderBookService(IOrderBookRepository orderBookRepository) : IOrder
             Asks = createOrderBookDto.Asks,
             Bids = createOrderBookDto.Bids,
             TradingPair = createOrderBookDto.TradingPair,
-            Created = DateTime.UtcNow,
+            Created = DateTime.Now,
         };
     }
 }

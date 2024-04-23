@@ -22,14 +22,15 @@ public class OrderBookRepository : IOrderBookRepository
         _orderBookCollection = _mongoDatabase.GetCollection<OrderBook>(orderBookSnapshotsDatabaseSettings.Value.OrderBookCollectionName);
     }
 
-    public async Task<OrderBook> GetOrderBookAsync(string tradingPair)
-    {
-        throw new NotImplementedException();
-    }
-
     public async Task CreateOrderBookAsync(OrderBook orderBook)
     {
         await _orderBookCollection.InsertOneAsync(orderBook);
     }
 
+    public Task<OrderBook> GetOrderBookAsync(DateTime dateTime, string tradingPair)
+    {
+        return _orderBookCollection.Find(x => x.Created < dateTime && x.TradingPair == tradingPair)
+            .SortByDescending(x => x.Created)
+            .FirstOrDefaultAsync();
+    }
 }

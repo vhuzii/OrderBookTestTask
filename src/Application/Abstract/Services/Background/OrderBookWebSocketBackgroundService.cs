@@ -50,7 +50,7 @@ public abstract class OrderBookWebSocketBackgroundService(IHubContext<OrderBookH
         }
     }
 
-    private CreateOrderBookDto GetCreateOrderBookDto(OrderBookJsonResponseDto orderBook) => new()
+    private CreateOrderBookDto GetCreateOrderBookDto(OrderBookWebSocketJsonResponseDto orderBook) => new()
     {
         Asks = orderBook.Data.Asks,
         Bids = orderBook.Data.Bids,
@@ -85,7 +85,7 @@ public abstract class OrderBookWebSocketBackgroundService(IHubContext<OrderBookH
             if (webSocketResult.MessageType == WebSocketMessageType.Text)
             {
                 var orderBookString = Encoding.UTF8.GetString(buffer, index: 0, webSocketResult.Count);
-                var orderBookResponse = JsonSerializer.Deserialize<OrderBookJsonResponseDto>(orderBookString, deserealizeOptions);
+                var orderBookResponse = JsonSerializer.Deserialize<OrderBookWebSocketJsonResponseDto>(orderBookString, deserealizeOptions);
                 if (orderBookResponse?.Event != WebSocketResultEvent)
                 {
                     continue;

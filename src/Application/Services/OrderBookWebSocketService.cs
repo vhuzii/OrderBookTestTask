@@ -31,13 +31,14 @@ public class OrderBookWebSocketService(IConfiguration configuration) : IOrderBoo
         return (result, _buffer);
     }
 
-    public Task StopWebSocket()
+    public async Task StopWebSocket()
     {
-        return _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+        await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
     }
 
     public async Task Subscribe(string tradingPair, CancellationToken cancellationToken)
     {
+        _clientWebSocket = new();
         await _clientWebSocket.ConnectAsync(new Uri(_websocketUrl), cancellationToken);
         await _clientWebSocket.SendAsync(Encoding.UTF8.GetBytes(GetMessage(tradingPair)), WebSocketMessageType.Text, true, cancellationToken);
     }
