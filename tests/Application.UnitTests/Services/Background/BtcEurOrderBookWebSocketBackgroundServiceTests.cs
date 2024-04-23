@@ -14,7 +14,7 @@ public class BtcEurOrderBookWebSocketBackgroundServiceTests
     private BtcEurOrderBookWebSocketBackgroundService btcEurOrderBookWebSocketBackgroundService;
     private Mock<IHubContext<OrderBookHub>> hubContextMock;
     private Mock<IOrderBookService> orderBookServiceMock;
-    private Mock<IOrderBookWebSockerService> orderBookWebSockerServiceMock;
+    private Mock<IOrderBookWebSocketService> orderBookWebSocketServiceMock;
     private Mock<ILogger<OrderBookWebSocketBackgroundService>> loggerMock;
 
     
@@ -23,18 +23,18 @@ public class BtcEurOrderBookWebSocketBackgroundServiceTests
     {
         hubContextMock = new Mock<IHubContext<OrderBookHub>>();
         orderBookServiceMock = new Mock<IOrderBookService>();
-        orderBookWebSockerServiceMock = new Mock<IOrderBookWebSockerService>();
+        orderBookWebSocketServiceMock = new Mock<IOrderBookWebSocketService>();
         loggerMock = new Mock<ILogger<OrderBookWebSocketBackgroundService>>();
         btcEurOrderBookWebSocketBackgroundService = new BtcEurOrderBookWebSocketBackgroundService(hubContextMock.Object, 
-            orderBookServiceMock.Object, orderBookWebSockerServiceMock.Object, loggerMock.Object);
+            orderBookServiceMock.Object, orderBookWebSocketServiceMock.Object, loggerMock.Object);
     }
 
     [Test]
     public async Task BtcEurOrderBookWebSocketBackgroundService_StratAsync_ShouldCallSubscribe()
     {
         // Arrange
-        orderBookWebSockerServiceMock.Setup(x => x.Subscribe(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
-        orderBookWebSockerServiceMock.SetupSequence(x => x.ReceiveAsync(It.IsAny<CancellationToken>()))
+        orderBookWebSocketServiceMock.Setup(x => x.Subscribe(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        orderBookWebSocketServiceMock.SetupSequence(x => x.ReceiveAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult((new WebSocketReceiveResult(0, WebSocketMessageType.Text, true), new byte[1024])))
             .Returns(Task.FromResult((new WebSocketReceiveResult(0, WebSocketMessageType.Close, true), new byte[1024])));
 
@@ -42,7 +42,7 @@ public class BtcEurOrderBookWebSocketBackgroundServiceTests
         await btcEurOrderBookWebSocketBackgroundService.StartAsync(CancellationToken.None);
 
         // Assert
-        orderBookWebSockerServiceMock.Verify(x => x.Subscribe(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        orderBookWebSocketServiceMock.Verify(x => x.Subscribe(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
 
@@ -50,13 +50,13 @@ public class BtcEurOrderBookWebSocketBackgroundServiceTests
     public async Task BtcEurOrderBookWebSocketBackgroundService_StopAsync_ShouldCallStopWebSocket()
     {
         // Arrange
-        orderBookWebSockerServiceMock.Setup(x => x.StopWebSocket()).Returns(Task.CompletedTask);
+        orderBookWebSocketServiceMock.Setup(x => x.StopWebSocket()).Returns(Task.CompletedTask);
 
         // Act
         await btcEurOrderBookWebSocketBackgroundService.StopAsync(CancellationToken.None);
 
         // Assert
-        orderBookWebSockerServiceMock.Verify(x => x.StopWebSocket(), Times.Once);
+        orderBookWebSocketServiceMock.Verify(x => x.StopWebSocket(), Times.Once);
     }
 
 

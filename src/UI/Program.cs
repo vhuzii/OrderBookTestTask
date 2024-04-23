@@ -16,7 +16,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddSignalR();
 builder.Services.AddTransient<IOrderBookService, OrderBookService>();
 builder.Services.AddTransient<IOrderBookRepository, OrderBookRepository>();
-builder.Services.AddTransient<IOrderBookWebSockerService, OrderBookWebSockerService>();
+builder.Services.AddTransient<IOrderBookWebSocketService, OrderBookWebSocketService>();
 builder.Services.AddHostedService<BtcEurOrderBookWebSocketBackgroundService>();
 builder.Services.AddHostedService<BtcUsdOrderBookWebSocketBackgroundService>();
 

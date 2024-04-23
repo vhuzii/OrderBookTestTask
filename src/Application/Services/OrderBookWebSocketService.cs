@@ -5,7 +5,7 @@ using OrderBookTestTask.Application.Interfaces;
 
 namespace OrderBookTestTask.Application.Services;
 
-public class OrderBookWebSockerService(IConfiguration configuration) : IOrderBookWebSockerService
+public class OrderBookWebSocketService(IConfiguration configuration) : IOrderBookWebSocketService
 {
     private const int WebSocketResultBufferSize = 10240;
 
