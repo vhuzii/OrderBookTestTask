@@ -6,6 +6,8 @@ using OrderBookTestTask.Application.Constants.SignalR;
 using OrderBookTestTask.Data.Options;
 using UI.Components;
 using OrderBookTestTask.Data.Interfaces;
+using System.Globalization;
+using OrderBookTestTask.Application.Constants;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +21,15 @@ builder.Services.AddTransient<IOrderBookRepository, OrderBookRepository>();
 builder.Services.AddTransient<IOrderBookWebSocketService, OrderBookWebSocketService>();
 builder.Services.AddHostedService<BtcEurOrderBookWebSocketBackgroundService>();
 builder.Services.AddHostedService<BtcUsdOrderBookWebSocketBackgroundService>();
+
+builder.Services.AddHttpClient("OrderBook", client => client.BaseAddress = new Uri(builder.Configuration["ApiUrl"]))
+    .ConfigurePrimaryHttpMessageHandler(() =>
+    {
+        var handler = new HttpClientHandler();
+        // Ignore SSL certificate validation
+        handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+        return handler;
+    });
 
 builder.Services.Configure<OrderBookSnapshotsDatabaseOptions>(
     builder.Configuration.GetSection("OrderBookDatabase"));
@@ -42,5 +53,10 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.MapHub<OrderBookHub>(HubUrls.OrderBookHub);
+
+app.MapGet("/order-book", async (string tradingPair, string dateTime, IOrderBookService orderBookService) =>
+{
+    return await orderBookService.GetOrderBookAsync(DateTime.ParseExact(dateTime, Date.DateTimeRequestFormat, CultureInfo.InvariantCulture), tradingPair);
+});
 
 app.Run();

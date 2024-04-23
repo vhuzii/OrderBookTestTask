@@ -24,10 +24,10 @@ public class OrderBookServiceTests
     {
         // Arrange
         var orderBook = new OrderBook();
-        orderBookRepositoryMock.Setup(x => x.GetOrderBookAsync(It.IsAny<string>())).ReturnsAsync(orderBook);
+        orderBookRepositoryMock.Setup(x => x.GetOrderBookAsync(It.IsAny<DateTime>(), It.IsAny<string>())).ReturnsAsync(orderBook);
 
         // Act
-        var result = await orderBookService.GetOrderBookAsync(It.IsAny<string>());
+        var result = await orderBookService.GetOrderBookAsync(It.IsAny<DateTime>(), It.IsAny<string>());
 
         // Assert
         Assert.That(result, Is.EqualTo(orderBook));

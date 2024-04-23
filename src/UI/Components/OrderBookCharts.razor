@@ -1,0 +1,36 @@
+
+@using OrderBookTestTask.Application.Dtos
+@using Radzen.Blazor
+<div class="row">
+    <div class="col-md-6">
+        <RadzenChart>
+            <RadzenColumnSeries Data="@Charts.BidsChart" CategoryProperty="Label" Title="Bids"
+                LineType="LineType.Dashed" ValueProperty="Value" Fill="green" />
+            <RadzenColumnOptions Radius="5" />
+            <RadzenValueAxis Formatter="@FormatValue">
+                <RadzenGridLines Visible="true" />
+                <RadzenAxisTitle Text="Amount" />
+            </RadzenValueAxis>
+        </RadzenChart>
+    </div>
+    <div class="col-md-6">
+        <RadzenChart>
+            <RadzenColumnSeries Data="@Charts.AsksChart" CategoryProperty="Label" Title="Asks"
+                LineType="LineType.Dashed" ValueProperty="Value" Fill="red" />
+            <RadzenColumnOptions Radius="5" />
+            <RadzenValueAxis Formatter="@FormatValue">
+                <RadzenGridLines Visible="true" />
+            </RadzenValueAxis>
+        </RadzenChart>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public OrderBookChartsDto Charts { get; set; }
+
+    private string FormatValue(object value)
+    {
+        return Math.Round((double)value, 3).ToString();
+    }
+}

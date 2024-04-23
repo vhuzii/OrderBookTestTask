@@ -3,52 +3,61 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using OrderBookTestTask.Application.Constants.SignalR
 @using OrderBookTestTask.Application.Dtos
+@using Radzen
 @using Radzen.Blazor
+@using OrderBookTestTask.Application.Constants
 @inject NavigationManager Navigation
+@inject IHttpClientFactory ClientFactory
 @implements IAsyncDisposable
 
 <PageTitle>@TradingPair</PageTitle>
 
 <h1>@TradingPair</h1>
-@if (_askCharts.Count == 0 || _bidCharts.Count == 0)
+@if (_charts is null)
 {
     <p>Loading...</p>
 }
 else 
 {
-<div class="row">
-    <div class="col-md-6">
-        <RadzenChart>
-            <RadzenColumnSeries Data="@_bidCharts" CategoryProperty="Label" Title="Bids"
-                LineType="LineType.Dashed" ValueProperty="Value" Fill="green" />
-            <RadzenColumnOptions Radius="5" />
-            <RadzenValueAxis Formatter="@FormatValue">
-                <RadzenGridLines Visible="true" />
-                <RadzenAxisTitle Text="Amount" />
-            </RadzenValueAxis>
-        </RadzenChart>
+    <OrderBookCharts Charts="@_charts" />
+    <div class="rz-p-12 rz-text-align-center">
+        <RadzenLabel Text="Select Order Book Date and Time" Component="DatePickerWithTime" Style="margin-right: 8px; vertical-align: middle;" />
+        <RadzenDatePicker @bind-Value=@_selectedDate ShowTime="true" ShowSeconds="true" HoursStep="1.5" MinutesStep="5" SecondsStep="10" DateFormat="MM/dd/yyyy HH:mm" Name="DatePickerWithTime" />
+        <RadzenButton Click=@(async args => await GetOrderbookByDate()) Text="Get Order Book" ButtonStyle="ButtonStyle.Primary" ButtonType="ButtonType.Button" />
     </div>
-    <div class="col-md-6">
-        <RadzenChart>
-            <RadzenColumnSeries Data="@_askCharts" CategoryProperty="Label" Title="Asks"
-                LineType="LineType.Dashed" ValueProperty="Value" Fill="red" />
-            <RadzenColumnOptions Radius="5" />
-            <RadzenValueAxis Formatter="@FormatValue">
-                <RadzenGridLines Visible="true" />
-            </RadzenValueAxis>
-        </RadzenChart>
-    </div>
-</div>
+    @if (_displayFetchError)
+    {
+        <div class="rz-p-12 rz-text-align-center">
+            <RadzenLabel Text="Error occurred while fetching data" Style="color: red;" />
+        </div>
+    }
+    else @if (_selectedCharts is not null)
+    {
+        @if (_selectedChartsTimeStamp is not null)
+        {
+            <div class="rz-p-12 rz-text-align-center">
+                <RadzenLabel Text="Nearest chart " />
+                <RadzenLabel Text="@_selectedChartsTimeStamp?.ToString()" Style="font-weight: bold;" />
+            </div>
+        }
+        <OrderBookCharts Charts="@_selectedCharts" />
+    }
 }
 
 
 @code {
     private const int NumberOfElementsToDisplay = 15;
 
+
     private HubConnection? _hubConnection;
 
-    private List<ChartDto> _askCharts = new();
-    private List<ChartDto> _bidCharts = new();
+    private OrderBookChartsDto? _charts;
+    private OrderBookChartsDto? _selectedCharts;
+
+    private DateTime? _selectedChartsTimeStamp;
+    private DateTime? _selectedDate = DateTime.Now;
+
+    private bool _displayFetchError = false;
 
     [Parameter]
     public string? TradingPair { get; set; }
@@ -71,26 +80,32 @@ else
 
         _hubConnection.On<string[][], string[][]>(Methods.ReceiveOrderBook, (asks, bids) =>
         {   
-            _askCharts = asks.Select(ask => new ChartDto
-            {
-                Label = ask[0],
-                Value = double.Parse(ask[1])
-            })
+            var askCharts = asks.Select(ParseChart)
             .Take(NumberOfElementsToDisplay)
             .ToList();
-            _bidCharts = bids.Select(bid => new ChartDto
-            {
-                Label = bid[0],
-                Value = double.Parse(bid[1])
-            })
+            var bidCharts = bids.Select(ParseChart)
             .Take(NumberOfElementsToDisplay)
             .Reverse()
             .ToList();
             InvokeAsync(StateHasChanged);
+            _charts = new OrderBookChartsDto
+            {
+                AsksChart = askCharts,
+                BidsChart = bidCharts
+            };
         });
 
         await _hubConnection.StartAsync();
         await _hubConnection.InvokeAsync(Methods.JoinRoom, TradingPair);
+    }
+
+    private ChartDto ParseChart(string[] chart)
+    {
+        return new ChartDto
+        {
+            Label = chart[0],
+            Value = double.Parse(chart[1])
+        };
     }
 
     private static Action<HttpConnectionOptions> ConfigureHttpConnection = (configureHttpConnection) =>
@@ -105,5 +120,27 @@ else
     private string FormatValue(object value)
     {
         return Math.Round((double)value, 3).ToString();
+    }
+
+    private async Task GetOrderbookByDate()
+    {
+        var client = ClientFactory.CreateClient("OrderBook");
+        try 
+        {
+            var orderBook = await client.GetFromJsonAsync<OrderBookJsonResponseDto>("/order-book?tradingPair=" + 
+            TradingPair + "&dateTime=" + _selectedDate?.ToString(Date.DateTimeRequestFormat));
+            _selectedCharts = new OrderBookChartsDto
+            {
+                AsksChart = orderBook.Asks.Take(NumberOfElementsToDisplay).Select(ParseChart).ToList(),
+                BidsChart = orderBook.Bids.Take(NumberOfElementsToDisplay).Select(ParseChart).ToList()
+            };
+            await InvokeAsync(StateHasChanged);
+            _displayFetchError = false;
+            _selectedChartsTimeStamp = orderBook.TimeStamp;
+        } 
+        catch (Exception)
+        {
+            _displayFetchError = true;
+        }
     }
 }
