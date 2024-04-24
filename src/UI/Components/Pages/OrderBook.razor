@@ -1,3 +1,5 @@
+@page "/orderbook/{TradingPair}"
+@page "/"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Http.Connections.Client
 @using Microsoft.AspNetCore.SignalR.Client
@@ -61,6 +63,7 @@ else
 
     [Parameter]
     public string? TradingPair { get; set; }
+    
 
 
     public async ValueTask DisposeAsync()
@@ -71,8 +74,10 @@ else
         }
     }
 
+
     protected override async Task OnInitializedAsync()
     {
+        RedirectToTradingPairIfNotProvided();
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(Navigation.ToAbsoluteUri(HubUrls.OrderBookHub))
             .Build();
@@ -97,6 +102,15 @@ else
 
         await _hubConnection.StartAsync();
         await _hubConnection.InvokeAsync(Methods.JoinRoom, TradingPair);
+    }
+
+    private void RedirectToTradingPairIfNotProvided()
+    {
+        if (string.IsNullOrWhiteSpace(TradingPair))
+        {
+            var defaultRoute = $"/orderbook/btceur";
+            Navigation.NavigateTo(defaultRoute);
+        }
     }
 
     private ChartDto ParseChart(string[] chart)
