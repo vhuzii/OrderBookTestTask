@@ -15,13 +15,13 @@
 <PageTitle>@TradingPair</PageTitle>
 
 <h1>@TradingPair</h1>
-@if (_charts is null)
+@if (_chart is null)
 {
     <p>Loading...</p>
 }
 else 
 {
-    <OrderBookCharts Charts="@_charts" />
+    <OrderBookCharts Chart="@_chart" />
     <div class="rz-p-12 rz-text-align-center">
         <RadzenLabel Text="Select Order Book Date and Time" Component="DatePickerWithTime" Style="margin-right: 8px; vertical-align: middle;" />
         <RadzenDatePicker @bind-Value=@_selectedDate ShowTime="true" ShowSeconds="true" HoursStep="1.5" MinutesStep="5" SecondsStep="10" DateFormat="MM/dd/yyyy HH:mm" Name="DatePickerWithTime" />
@@ -33,7 +33,7 @@ else
             <RadzenLabel Text="Error occurred while fetching data" Style="color: red;" />
         </div>
     }
-    else @if (_selectedCharts is not null)
+    else @if (_selectedChart is not null)
     {
         @if (_selectedChartsTimeStamp is not null)
         {
@@ -42,7 +42,7 @@ else
                 <RadzenLabel Text="@_selectedChartsTimeStamp?.ToString()" Style="font-weight: bold;" />
             </div>
         }
-        <OrderBookCharts Charts="@_selectedCharts" />
+        <OrderBookCharts Chart="@_selectedChart" />
     }
 }
 
@@ -53,8 +53,8 @@ else
 
     private HubConnection? _hubConnection;
 
-    private OrderBookChartsDto? _charts;
-    private OrderBookChartsDto? _selectedCharts;
+    private OrderBookChartDto? _chart;
+    private OrderBookChartDto? _selectedChart;
 
     private DateTime? _selectedChartsTimeStamp;
     private DateTime? _selectedDate = DateTime.Now;
@@ -93,7 +93,7 @@ else
             .Reverse()
             .ToList();
             InvokeAsync(StateHasChanged);
-            _charts = new OrderBookChartsDto
+            _chart = new OrderBookChartDto
             {
                 AsksChart = askCharts,
                 BidsChart = bidCharts
@@ -134,7 +134,7 @@ else
         {
             var orderBook = await client.GetFromJsonAsync<OrderBookJsonResponseDto>("/order-book?tradingPair=" + 
             TradingPair + "&dateTime=" + _selectedDate?.ToString(Date.DateTimeRequestFormat));
-            _selectedCharts = new OrderBookChartsDto
+            _selectedChart = new OrderBookChartDto
             {
                 AsksChart = orderBook.Asks.Take(NumberOfElementsToDisplay).Select(ParseChart).ToList(),
                 BidsChart = orderBook.Bids.Take(NumberOfElementsToDisplay).Select(ParseChart).ToList()

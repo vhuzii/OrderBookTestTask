@@ -2,10 +2,12 @@
 @using OrderBookTestTask.Application.Dtos
 @using Radzen.Blazor
 <div class="row">
-    <div class="col-md-6">
+    <div class="col-md-12">
         <RadzenChart>
-            <RadzenColumnSeries Data="@Charts.BidsChart" CategoryProperty="Label" Title="Bids"
+            <RadzenColumnSeries Data="@Chart.BidsChart" CategoryProperty="Label" Title="Bids"
                 LineType="LineType.Dashed" ValueProperty="Value" Fill="green" />
+            <RadzenColumnSeries Data="@Chart.AsksChart" CategoryProperty="Label" Title="Asks"
+                LineType="LineType.Dashed" ValueProperty="Value" Fill="red" />
             <RadzenColumnOptions Radius="5" />
             <RadzenValueAxis Formatter="@FormatValueAxis">
                 <RadzenGridLines Visible="true" />
@@ -13,21 +15,11 @@
             </RadzenValueAxis>
         </RadzenChart>
     </div>
-    <div class="col-md-6">
-        <RadzenChart>
-            <RadzenColumnSeries Data="@Charts.AsksChart" CategoryProperty="Label" Title="Asks"
-                LineType="LineType.Dashed" ValueProperty="Value" Fill="red" />
-            <RadzenColumnOptions Radius="5" />
-            <RadzenValueAxis Formatter="@FormatValueAxis">
-                <RadzenGridLines Visible="true" />
-            </RadzenValueAxis>
-        </RadzenChart>
-    </div>
 </div>
 
 @code {
     [Parameter]
-    public OrderBookChartsDto Charts { get; set; }
+    public OrderBookChartDto Chart { get; set; }
 
     private string FormatValueAxis(object value)
     {
