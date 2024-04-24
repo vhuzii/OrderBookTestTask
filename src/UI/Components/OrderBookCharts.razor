@@ -7,7 +7,7 @@
             <RadzenColumnSeries Data="@Charts.BidsChart" CategoryProperty="Label" Title="Bids"
                 LineType="LineType.Dashed" ValueProperty="Value" Fill="green" />
             <RadzenColumnOptions Radius="5" />
-            <RadzenValueAxis Formatter="@FormatValue">
+            <RadzenValueAxis Formatter="@FormatValueAxis">
                 <RadzenGridLines Visible="true" />
                 <RadzenAxisTitle Text="Amount" />
             </RadzenValueAxis>
@@ -18,7 +18,7 @@
             <RadzenColumnSeries Data="@Charts.AsksChart" CategoryProperty="Label" Title="Asks"
                 LineType="LineType.Dashed" ValueProperty="Value" Fill="red" />
             <RadzenColumnOptions Radius="5" />
-            <RadzenValueAxis Formatter="@FormatValue">
+            <RadzenValueAxis Formatter="@FormatValueAxis">
                 <RadzenGridLines Visible="true" />
             </RadzenValueAxis>
         </RadzenChart>
@@ -29,7 +29,7 @@
     [Parameter]
     public OrderBookChartsDto Charts { get; set; }
 
-    private string FormatValue(object value)
+    private string FormatValueAxis(object value)
     {
         return Math.Round((double)value, 3).ToString();
     }
