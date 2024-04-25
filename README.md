@@ -2,3 +2,5 @@ Displays order book data for btc/eur and btc/usd trading pairs. Allows user to s
 
 
 Requires MongoDB to run on port 27017.
+
+![image](https://github.com/vhuzii/OrderBookTestTask/assets/35489438/118e260f-5221-4dc7-a216-3d4980ab4e85)
